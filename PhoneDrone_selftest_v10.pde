@@ -8,28 +8,35 @@
 
 #define VERSION 0 //Old version =0;
 
-#define PORTK_HIGH(x)   (PORTK |=   (1 << x))
-#define PORTK_LOW(x)    (PORTK &=  ~(1 << x))
-#define PORTK_OUTPUT(x) (DDRK  |=   (1 << x))
-#define PORTK_INPUT(x)  (DDRK  &=  ~(1 << x))
-#define PORTK_READ(x)   (PINK   &   (1 << x))
-
 volatile unsigned int Start_Pulse =0;
 volatile unsigned int Stop_Pulse =0;
 volatile unsigned int Pulse_Width =0;
 
-volatile int Test=0;
-volatile int Test2=0;
-volatile int Temp=0;
 volatile int Counter=0;
 volatile byte PPM_Counter=0;
 volatile int PWM_RAW[8] = {
   2400,2400,2400,2400,2400,2400,2400,2400};
 int All_PWM=1500;
 
+#include <Max3421e.h>
+#include <Usb.h>
+#include <AndroidAccessory.h>
+
+
 long timer=0;
 long timer2=0;
 byte Status=0;
+
+int offset0 = 0;
+int offset1 = 0;
+
+AndroidAccessory acc("Google, Inc.",
+             "PhoneDrone",
+             "Phone Drone ADK by 3DRobotics",
+             "1.0",
+             "http://www.falkorichter.de",
+             "0000000012345678");
+
 
 void setup()
 {
@@ -56,6 +63,7 @@ void setup()
   Init_PWM5();      //OUT0&1
   Init_PPM_PWM4();  //OUT4&5
 
+acc.powerOn();
 //  test_AT328();
 }
 
@@ -67,13 +75,47 @@ void loop()
 
   //Printing all values.
   
-//    Serial.print("Ch0:");
-//    Serial.print(InputCh(0));
-    OutputCh(0,InputCh(0));
+    Serial.print("Ch0:");
+    Serial.print(InputCh(0));
     
-//    Serial.print(" Ch1:");
-//    Serial.print(InputCh(1));
+    Serial.print(" Ch1:");
+    Serial.print(InputCh(1));
+    
+    byte msg[3];
+ 
+  if (acc.isConnected()) {
+        Serial.println("connected");
+    int len = acc.read(msg, sizeof(msg), 1);
+    if (len > 0) {
+      if (msg[0] == 0x2) {
+        offset0 = msg[1];
+        offset0 += msg[2]*256;
+      } 
+      else if (msg[0] == 0x3) {
+        offset1 = msg[1];
+        offset1 += msg[2]*256;
+      } 
+    }
+    int ch1 = InputCh(1);
+    msg[0] = 0x1;
+    msg[1] = lowByte(ch1);
+    msg[2] = highByte(ch1);
+    acc.write(msg, 3);
+     
+    OutputCh(0,InputCh(0)+offset0);   
+    OutputCh(1,InputCh(1)+offset1);
+  } 
+  else {
+    OutputCh(0,InputCh(0));
     OutputCh(1,InputCh(1));      
+  }
+   Serial.print(" ");
+  Serial.print(highByte(InputCh(1)),DEC);
+  Serial.print(" ");
+  Serial.print(lowByte(InputCh(1)),DEC);
+  Serial.println(" ");
+  
+   OutputCh(2,InputCh(1));      
     
 //    Serial.println("");
   
