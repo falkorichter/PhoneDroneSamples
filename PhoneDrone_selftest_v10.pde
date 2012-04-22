@@ -30,6 +30,8 @@ byte Status=0;
 int offset0 = 0;
 int offset1 = 0;
 
+int loopCount = 0;
+
 AndroidAccessory acc("Google, Inc.",
              "PhoneDrone",
              "Phone Drone ADK by 3DRobotics",
@@ -63,7 +65,7 @@ void setup()
   Init_PWM5();      //OUT0&1
   Init_PPM_PWM4();  //OUT4&5
 
-acc.powerOn();
+  acc.powerOn();
 //  test_AT328();
 }
 
@@ -81,26 +83,50 @@ void loop()
     Serial.print(" Ch1:");
     Serial.print(InputCh(1));
     
-    byte msg[3];
+    byte msg[5];
  
   if (acc.isConnected()) {
-        Serial.println("connected");
+    Serial.print(" connected");    
     int len = acc.read(msg, sizeof(msg), 1);
     if (len > 0) {
+        Serial.print(" msg[0] ");
+        Serial.print(msg[0],DEC);
+        Serial.print(" msg[1]: ");
+        Serial.print(msg[1],DEC);
+        Serial.print(" msg[2]: ");
+        Serial.print(msg[2],DEC);
+
       if (msg[0] == 0x2) {
         offset0 = msg[1];
         offset0 += msg[2]*256;
+        offset0 = offset0 -1000;
+        
       } 
       else if (msg[0] == 0x3) {
         offset1 = msg[1];
         offset1 += msg[2]*256;
+        offset1 = offset1 - 1000;
+
       } 
     }
-    int ch1 = InputCh(1);
-    msg[0] = 0x1;
-    msg[1] = lowByte(ch1);
-    msg[2] = highByte(ch1);
-    acc.write(msg, 3);
+        Serial.print(" offset 0: ");
+        Serial.print(offset0,DEC);
+        Serial.print(" offset 1: ");
+        Serial.print(offset1,DEC);
+
+    loopCount++;
+    if (loopCount == 10){
+      loopCount = 0;
+      int ch0 = InputCh(0);
+      int ch1 = InputCh(1);
+      msg[0] = 0x1;
+      msg[1] = highByte(ch0);
+      msg[2] = lowByte(ch0);
+      msg[3] = highByte(ch1);
+      msg[4] = lowByte(ch1);
+      acc.write(msg, 5);
+    }
+
      
     OutputCh(0,InputCh(0)+offset0);   
     OutputCh(1,InputCh(1)+offset1);
@@ -109,10 +135,10 @@ void loop()
     OutputCh(0,InputCh(0));
     OutputCh(1,InputCh(1));      
   }
-   Serial.print(" ");
-  Serial.print(highByte(InputCh(1)),DEC);
-  Serial.print(" ");
-  Serial.print(lowByte(InputCh(1)),DEC);
+//   Serial.print(" ");
+//  Serial.print(highByte(InputCh(1)),DEC);
+//  Serial.print(" ");
+//  Serial.print(lowByte(InputCh(1)),DEC);
   Serial.println(" ");
   
    OutputCh(2,InputCh(1));      
