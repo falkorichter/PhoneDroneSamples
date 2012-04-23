@@ -32,6 +32,8 @@ int offset1 = 0;
 
 int loopCount = 0;
 
+boolean sendPWMUpdates = false;
+
 AndroidAccessory acc("Google, Inc.",
              "PhoneDrone",
              "Phone Drone ADK by 3DRobotics",
@@ -39,24 +41,12 @@ AndroidAccessory acc("Google, Inc.",
              "http://www.falkorichter.de",
              "0000000012345678");
 
+void sendPWMValues();
 
 void setup()
 {
 
-  /*
-  MCUCR = 0x80; //Disable JTAG
-   MCUCR = 0x80;
-   */
-
-  /*
-  //This also works
-   bitSet(MCUCR,JTD); 
-   bitSet(MCUCR,JTD);
-   */
-
   Serial.begin(57600);
-
-
   digitalWrite(4,LOW); //PG5 por esto
   pinMode(4,INPUT);
   
@@ -66,27 +56,20 @@ void setup()
   Init_PPM_PWM4();  //OUT4&5
 
   acc.powerOn();
-//  test_AT328();
 }
 
 void loop()
 {
-  //Switch low, forward the PPM
-
-  //GPS_LED();
-
-  //Printing all values.
   
-    Serial.print("Ch0:");
-    Serial.print(InputCh(0));
+//    Serial.print("Ch0:");
+//    Serial.print(InputCh(0));
+//    Serial.print(" Ch1:");
+//    Serial.print(InputCh(1));
     
-    Serial.print(" Ch1:");
-    Serial.print(InputCh(1));
     
-    byte msg[5];
  
   if (acc.isConnected()) {
-    Serial.print(" connected");    
+   byte msg[3];
     int len = acc.read(msg, sizeof(msg), 1);
     if (len > 0) {
         Serial.print(" msg[0] ");
@@ -95,6 +78,7 @@ void loop()
         Serial.print(msg[1],DEC);
         Serial.print(" msg[2]: ");
         Serial.print(msg[2],DEC);
+        Serial.println(" ");
 
       if (msg[0] == 0x2) {
         offset0 = msg[1];
@@ -108,23 +92,24 @@ void loop()
         offset1 = offset1 - 1000;
 
       } 
+      else if (msg[0] == 0x4) {
+        
+        sendPWMUpdates = (msg[1] == 0x1) && (msg[2] == 0x1);
+        Serial.print(" sendPWMUpdates is ");
+        Serial.print(sendPWMUpdates, DEC);
+        sendPWMValues();
+      } 
     }
-        Serial.print(" offset 0: ");
-        Serial.print(offset0,DEC);
-        Serial.print(" offset 1: ");
-        Serial.print(offset1,DEC);
+//        Serial.print(" connected");   
+//        Serial.print(" offset 0: ");
+//        Serial.print(offset0,DEC);
+//        Serial.print(" offset 1: ");
+//        Serial.print(offset1,DEC);
 
     loopCount++;
-    if (loopCount == 10){
+    if (sendPWMUpdates && (loopCount == 100)){
       loopCount = 0;
-      int ch0 = InputCh(0);
-      int ch1 = InputCh(1);
-      msg[0] = 0x1;
-      msg[1] = highByte(ch0);
-      msg[2] = lowByte(ch0);
-      msg[3] = highByte(ch1);
-      msg[4] = lowByte(ch1);
-      acc.write(msg, 5);
+      sendPWMValues();
     }
 
      
@@ -141,12 +126,24 @@ void loop()
 //  Serial.print(highByte(InputCh(1)),DEC);
 //  Serial.print(" ");
 //  Serial.print(lowByte(InputCh(1)),DEC);
-  Serial.println(" ");
+  
   
    
     
 //    Serial.println("");
   
+}
+
+void sendPWMValues(){
+  byte msg[5];
+  int ch0 = InputCh(0);
+      int ch1 = InputCh(1);
+      msg[0] = 0x1;
+      msg[1] = highByte(ch0);
+      msg[2] = lowByte(ch0);
+      msg[3] = highByte(ch1);
+      msg[4] = lowByte(ch1);
+      acc.write(msg, 5);
 }
 
 
