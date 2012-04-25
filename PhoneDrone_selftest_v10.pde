@@ -130,10 +130,12 @@ void loop()
      
     OutputCh(0,InputCh(0)+offset0);   
     OutputCh(1,InputCh(1)+offset1);
+    OutputCh(2,InputCh(1)+offset1);
   } 
   else {
     OutputCh(0,InputCh(0));
     OutputCh(1,InputCh(1));      
+    OutputCh(2,InputCh(1));      
   }
 //   Serial.print(" ");
 //  Serial.print(highByte(InputCh(1)),DEC);
@@ -141,7 +143,7 @@ void loop()
 //  Serial.print(lowByte(InputCh(1)),DEC);
   Serial.println(" ");
   
-   OutputCh(2,InputCh(1));      
+   
     
 //    Serial.println("");
   
